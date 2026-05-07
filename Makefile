@@ -3,19 +3,19 @@ CC ?= cc
 CFLAGS += -O2 -Wall -Wextra
 PREFIX ?= /usr/local
 
-all: swfetch
+all: sfetch
 
-swfetch: ${SRC} src/config.h
-	${CC} ${CFLAGS} ${SRC} -o swfetch
+sfetch: ${SRC} src/config.h
+	${CC} ${CFLAGS} ${SRC} -o sfetch
 
 clean:
-	rm -rf swfetch swfetch.dSYM
+	rm -rf sfetch sfetch.dSYM
 
-install: swfetch
+install: sfetch
 	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp swfetch ${DESTDIR}${PREFIX}/bin
+	cp sfetch ${DESTDIR}${PREFIX}/bin
 
 uninstall:
-	rm -f ${DESTDIR}${PREFIX}/bin/swfetch
+	rm -f ${DESTDIR}${PREFIX}/bin/sfetch
 
 .PHONY: all clean debug install uninstall
