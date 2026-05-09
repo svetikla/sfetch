@@ -30,6 +30,7 @@ struct
 state {
 	char *os;
 	char *kernel;
+	char *host;
 	char *arch;
 	char *user;
 	char *shell;
@@ -47,6 +48,7 @@ free_state(struct state *st)
 	free(st->kernel);
 	free(st->ipaddr);
 	free(st->uptime);
+	free(st->host);
 	free(st->locale);
 	free(st->shell);
 	free(st->arch);
@@ -58,16 +60,19 @@ free_state(struct state *st)
 }
 
 static void
-pr(const char *label, const char *value)
+pr(const char *l, const char *val)
 {
-	printf(FMT,label, TAB, "", value ?: "N/A");
+	printf(FMT, l, TAB, "", val ?: "N/A");
 }
+
+
 
 int
 set_shell(struct state *st)
 {
 	char *sh = getenv("SHELL");
-	if (!sh) return (1);
+	if (!sh)
+		return (1);
 	char *sl = strrchr(sh, '/');
 	st->shell = strdup(sl ? sl + 1 : sh);
 	return (0);
@@ -112,11 +117,13 @@ set_packages(struct state *st)
 	size_t npkg = 0;
 
 	while (fgets(buf, sizeof buf, f) != NULL) {
-		if (strchr(buf, '\n') != NULL)
+		if (strchr(buf, '\n') != NULL) {
 			npkg++;
+		}
 	}
 
-	if (pclose(f) != 0) return (1);
+	if (pclose(f) != 0)
+		return (1);
 	snprintf(buf, sizeof(buf), "%zu", npkg);
 	st->pkgs = strdup(buf);
 	return (0);
@@ -130,7 +137,8 @@ set_user(struct state *st)
 	p = getenv("USER");
 	if (p == NULL || *p == '\0') {
 		pw = getpwuid(getuid());
-		if (pw == NULL) return (1);
+		if (pw == NULL)
+			return (1);
 		p = pw->pw_name;
 	}
 	st->user = strdup(p);
@@ -188,13 +196,17 @@ set_ram(struct state *st)
 	u_int a;
 	u_int w;
 
-	if (sbn(S_PHYS,   t)) return (1);
-	if (sbn(S_ACTIVE, a)) return (1);
-	if (sbn(S_WIRED,  w)) return (1);
+	if (sbn(S_PHYS,   t))
+		return (1);
+	if (sbn(S_ACTIVE, a))
+		return (1);
+	if (sbn(S_WIRED,  w))
+		return (1);
 
 	snprintf(buf, sizeof(buf),
 		"%luMB / %luMB",
-		((u_int64_t)a + w) * sysconf(_SC_PAGESIZE) >> 20,
+		((u_int64_t)a + w)
+		* sysconf(_SC_PAGESIZE) >> 20,
 		t >> 20);
 
 	st->ram = strdup(buf);
@@ -215,9 +227,9 @@ set_disk(struct state *st)
 
 	total = vfs.f_blocks * vfs.f_frsize;
 	avail = vfs.f_bavail * vfs.f_frsize;
-	used  = total - avail;
+	used = total - avail;
 	total /= 1024 * 1024;
-	used  /= 1024 * 1024;
+	used /= 1024 * 1024;
 
 	snprintf(buf, sizeof(buf),
 		"%luMB / %luMB", used, total);
@@ -229,9 +241,21 @@ int
 set_locale(struct state *st)
 {
 	char *l = getenv("LC_ALL");
-	if (!l || !*l) l = getenv("LC_CTYPE");
-	if (!l || !*l) l = getenv("LANG");
+	if (!l || !*l)
+		l = getenv("LC_CTYPE");
+	if (!l || !*l)
+		l = getenv("LANG");
 	st->locale = strdup(l);
+	return (0);
+}
+
+int
+set_host(struct state *st)
+{
+	char buf[64];
+	if (sbn("kern.hostname", buf))
+		return (0);
+	st->host = strdup(buf);
 	return (0);
 }
 
@@ -263,11 +287,12 @@ main(void)
 		perror("uname");
 		return 1;
 	}
-
+	
 	set_kernel(&st, &u);
 	set_arch(&st, &u);
 	set_os(&st, &u);
 	set_uptime(&st);
+	set_host(&st);
 
 	set_packages(&st);
 	set_ipaddr(&st);
@@ -281,6 +306,7 @@ main(void)
 
 	putchar('\n');
 	pr(USERTEXT,    st.user);
+	pr(HOSTTEXT,    st.host);
 	pr(OSTEXT,      st.os);
 	pr(ARCHTEXT,    st.arch);
 	pr(KERNELTEXT,  st.kernel);
