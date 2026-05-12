@@ -179,7 +179,6 @@ set_ipaddr(struct state *st)
 		    buf, sizeof(buf)) == NULL)
 			continue;
 		
-		free(st->ipaddr);
 		st->ipaddr = strdup(buf);
 		break;
 	}
@@ -254,7 +253,7 @@ set_host(struct state *st)
 {
 	char buf[64];
 	if (sbn("kern.hostname", buf))
-		return (0);
+		return (1);
 	st->host = strdup(buf);
 	return (0);
 }
