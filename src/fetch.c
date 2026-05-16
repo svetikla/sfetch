@@ -15,6 +15,7 @@
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
+#include <pkg.h>
 
 #include "config.h"
 
@@ -110,28 +111,28 @@ set_uptime(struct state *st)
 int
 set_packages(struct state *st)
 {
-	char buf[64];
-	const char *const cmd = "/usr/sbin/pkg query %n \
-			2>/dev/null | /usr/bin/wc -l";
-	FILE *f = popen(cmd, "r");
-	if (f == NULL)
+	struct pkgdb *db = NULL;
+	char buf[32];
+	int64_t c= 0;
+
+	if (pkg_init(NULL, NULL) != EPKG_OK)
 		return (1);
 
-	if (fgets(buf, sizeof(buf), f) == NULL) {
-		pclose(f);
+	if (pkgdb_open(&db, PKGDB_DEFAULT) != EPKG_OK) {
+		pkg_shutdown();
 		return (1);
 	}
 
-	if (pclose(f) != 0)
+	c = pkgdb_stats(db, PKG_STATS_LOCAL_COUNT);
+	
+	pkgdb_close(db);
+	pkg_shutdown();
+
+	if (c< 0)
 		return (1);
 
-	char *r = buf;
-	while (*r == ' ') {
-		r++;
-	}
-
-	r[strcspn(r, "\n\r ")] = '\0';
-	st->pkgs = strdup(r);
+	snprintf(buf, sizeof(buf), "%ld", (long)c);
+	st->pkgs = strdup(buf);
 	return (0);
 }
 

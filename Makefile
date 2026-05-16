@@ -1,12 +1,13 @@
 SRC = src/fetch.c
 CC ?= cc
-CFLAGS += -O2 -Wall -Wextra
+CFLAGS += -O2 -Wall -Wextra -I${PREFIX}/include
 PREFIX ?= /usr/local
+LDFLAGS += -L${PREFIX}/lib -lpkg
 
 all: sfetch
 
 sfetch: ${SRC} src/config.h
-	${CC} ${CFLAGS} ${SRC} -o sfetch
+	${CC} ${CFLAGS} ${SRC} -o sfetch ${LDFLAGS}
 
 clean:
 	rm -rf sfetch sfetch.dSYM
